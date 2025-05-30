@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Uploads folder - be careful if you need to persist these for some reason
+uploads/
+
+# IDE / OS specific
+.vscode/
+.idea/
+*.DS_Store

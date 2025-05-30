@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV → LinkedIn Jobs Matcher & Tailor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; padding-top: 20px; padding-bottom: 20px; }
+        .container { max-width: 900px; margin: 0 auto; padding: 15px; }
+        .header { text-align: center; margin-bottom: 30px; color: white; }
+        .header h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 1.0rem; opacity: 0.9; }
+        .card { background: rgba(255, 255, 255, 0.98); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 15px 30px rgba(0,0,0,0.12); }
+        .upload-area { border: 2px dashed #667eea; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease; background-color: #f4f6ff; }
+        .upload-area:hover { border-color: #5a67d8; background-color: #e9efff; }
+        .upload-icon { font-size: 2.5rem; margin-bottom: 10px; color: #667eea; }
+        .upload-area h3 { font-size: 1.2rem; color: #4a5568; margin-bottom: 5px;}
+        .upload-area p { font-size: 0.9rem; color: #718096;}
+        .search-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 1.0rem; font-weight: 600; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .search-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #4a5568; font-size: 0.95rem; }
+        .form-control { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-size: 1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); outline: none; }
+        .job-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .job-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        .job-title { font-size: 1.2rem; font-weight: 600; color: #2d3748; margin-bottom: 4px; }
+        .job-company { color: #00529B; font-weight: 500; margin-bottom: 8px; font-size: 0.95rem; }
+        .job-meta { color: #718096; font-size: 0.85rem; margin-bottom: 12px; }
+        .match-score { background: #667eea; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: 600; }
+        .action-btn { color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: 500; text-decoration: none; display: inline-block; font-size: 0.9rem; transition: background-color 0.2s ease, opacity 0.2s; cursor:pointer; margin-right:8px; }
+        .action-btn:hover { opacity:0.85; }
+        .apply-btn { background-color: #0066cc; }
+        .apply-btn:hover { background-color: #0052a3; }
+        .tailor-cv-btn { background-color: #ff7f50; /* Coral */ }
+        .tailor-cv-btn:hover { background-color: #ff6347; /* Tomato */ }
+        .people-search-btn { 
+            color: white; border: none; padding: 7px 14px; border-radius: 18px;
+            font-weight: 500; text-decoration: none; display: inline-block;
+            font-size: 0.8rem; margin-left: 8px; margin-top: 8px;
+            transition: opacity 0.2s ease;
+        }
+        .people-search-btn:hover { opacity: 0.85; }
+        .loading { text-align: center; padding: 30px; }
+        .loading-spinner { border: 3px solid #f0f0f0; border-top: 3px solid #667eea; border-radius: 50%; width: 30px; height: 30px; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto; }
+        .loading h3 { font-size: 1.1rem; color: #4a5568; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .file-info { margin-top: 12px; padding: 10px; background: #e6fffa; border-left: 4px solid #38b2ac; border-radius: 6px; display: none; font-size: 0.9rem; color: #2c7a7b; }
+        .results-section { display: none; }
+        .error-message { background: #fff5f5; color: #c53030; border-left: 4px solid #f56565; padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 0.9rem; }
+        /* Modal Styles */
+        .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.6); }
+        .modal-content { background-color:#fff; margin: 5% auto; padding:25px; border-radius:12px; width:80%; max-width:700px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position:relative; }
+        .modal-close { color:#aaa; position:absolute; right:20px; top:15px; font-size:28px; font-weight:bold; cursor:pointer; }
+        .modal-close:hover { color: #333; }
+        .modal h2 { margin-top:0; margin-bottom:20px; font-size:1.6rem; color:#333; }
+        .modal h3 { font-size:1.3rem; color:#444; margin-bottom:10px; margin-top: 20px; }
+        .modal textarea { width:100%; height:300px; padding:10px; border:1px solid #ddd; border-radius:6px; font-family:monospace; font-size:0.9rem; margin-bottom:10px; white-space: pre-wrap; background-color:#f9f9f9; }
+        .modal ul { list-style-type:disc; padding-left:25px; font-size:0.95rem; color:#555; margin-bottom: 20px; }
+        .modal li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 → 💼 CV to LinkedIn Jobs & Tailor</h1>
+            <p>Upload CV → AI Analysis → LinkedIn Jobs → People Search → CV Tailoring</p>
+        </div>
+        
+        <div class="card">
+            <div class="upload-area" onclick="document.getElementById('cvFile').click()" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <h3>Upload Your CV</h3>
+                <p>PDF, DOC, DOCX, or TXT files</p>
+                <input type="file" id="cvFile" accept=".pdf,.doc,.docx,.txt" style="display: none;">
+            </div>
+            <div id="fileInfo" class="file-info">
+                <strong>✅ File selected:</strong> <span id="fileName"></span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="form-group">
+                <label for="location">Job Search Location</label>
+                <input type="text" id="location" class="form-control" value="Dubai" placeholder="e.g., Dubai, London, New York">
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="search-btn" id="searchBtn" disabled onclick="searchJobs()">
+                    🔍 Find LinkedIn Matches
+                </button>
+            </div>
+        </div>
+        <div id="loadingSection" class="card loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <h3>Matching CV to LinkedIn...</h3>
+            <p id="loadingStatus" style="font-size:0.9rem; color: #718096; margin-top:8px;"></p>
+        </div>
+        <div class="results-section" id="resultsSection">
+            <div class="card">
+                <h2 style="font-size: 1.5rem; color: #2d3748; margin-bottom: 20px;">🎯 LinkedIn Opportunities</h2>
+                <div id="jobsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CV Tailoring Modal -->
+    <div id="cvTailorModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('cvTailorModal').style.display='none'">×</span>
+            <h2 id="cvTailorModalTitle">CV Tailoring Results</h2>
+            
+            <div id="cvTailorLoading" class="loading" style="display:none; padding:20px 0;">
+                 <div class="loading-spinner" style="margin: 0 auto 10px auto;"></div>
+                 <p style="font-size:1rem; color:#555;">AI is tailoring your CV and generating recommendations...</p>
+            </div>
+
+            <div id="cvTailorResultsContent" style="display:none;">
+                <h3>📝 Tailored CV</h3>
+                <textarea id="tailoredCVText" readonly placeholder="Your AI-tailored CV will appear here..."></textarea>
+                <button onclick="copyToClipboard('tailoredCVText')" style="padding:8px 12px; font-size:0.85rem; margin-bottom:20px; background-color:#5cb85c; color:white; border:none; border-radius:5px; cursor:pointer;">Copy CV Text</button>
+                
+                <h3>💡 Recommendations</h3>
+                <ul id="cvRecommendationsList"></ul>
+            </div>
+            <div id="cvTailorError" class="error-message" style="display:none; margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let originalCVText = null; 
+        let currentJobsData = []; 
+
+        const cvFileInput = document.getElementById('cvFile');
+        const fileNameDisplay = document.getElementById('fileName');
+        const fileInfoDisplay = document.getElementById('fileInfo');
+        const searchBtn = document.getElementById('searchBtn');
+        const loadingSection = document.getElementById('loadingSection');
+        const loadingStatus = document.getElementById('loadingStatus');
+        const resultsSection = document.getElementById('resultsSection');
+        const jobsList = document.getElementById('jobsList');
+        const uploadArea = document.getElementById('uploadArea');
+
+        const cvTailorModal = document.getElementById('cvTailorModal');
+        const cvTailorModalTitle = document.getElementById('cvTailorModalTitle');
+        const cvTailorLoading = document.getElementById('cvTailorLoading');
+        const cvTailorResultsContent = document.getElementById('cvTailorResultsContent');
+        const tailoredCVText = document.getElementById('tailoredCVText');
+        const cvRecommendationsList = document.getElementById('cvRecommendationsList');
+        const cvTailorError = document.getElementById('cvTailorError');
+
+        uploadArea.addEventListener('dragover', (event) => { event.preventDefault(); uploadArea.style.borderColor = '#5a67d8'; });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = '#667eea'; });
+        uploadArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                cvFileInput.files = files;
+                handleFileSelection(files[0]);
+            }
+        });
+
+        cvFileInput.addEventListener('change', function(e) { handleFileSelection(e.target.files[0]); });
+
+        function handleFileSelection(file) {
+            if (file) {
+                const allowedExtensions = /(\.pdf|\.doc|\.docx|\.txt)$/i;
+                if (!allowedExtensions.exec(file.name)) {
+                    alert('Invalid file type. Please upload PDF, DOC, DOCX, or TXT.');
+                    cvFileInput.value = ''; return;
+                }
+                if (file.size > 16 * 1024 * 1024) { 
+                    alert('File is too large. Maximum size is 16MB.');
+                    cvFileInput.value = ''; return;
+                }
+                uploadedFile = file;
+                fileNameDisplay.textContent = file.name;
+                fileInfoDisplay.style.display = 'block';
+                searchBtn.disabled = false;
+                originalCVText = null; 
+            } else {
+                uploadedFile = null; fileInfoDisplay.style.display = 'none'; searchBtn.disabled = true; originalCVText = null;
+            }
+        }
+
+        async function searchJobs() {
+            if (!uploadedFile) { alert('Please upload your CV first'); return; }
+            
+            loadingSection.style.display = 'block';
+            loadingStatus.textContent = 'Analyzing CV...';
+            resultsSection.style.display = 'none';
+            jobsList.innerHTML = ''; 
+            searchBtn.disabled = true;
+            originalCVText = null; 
+            currentJobsData = []; 
+
+            const formData = new FormData();
+            formData.append('cv_file', uploadedFile);
+            formData.append('location', document.getElementById('location').value || 'Worldwide');
+            
+            try {
+                setTimeout(() => { if(loadingSection.style.display === 'block') loadingStatus.textContent = 'Searching LinkedIn for jobs...'; }, 2000);
+                setTimeout(() => { if(loadingSection.style.display === 'block') loadingStatus.textContent = 'Scoring job matches with AI...'; }, 7000);
+
+                const response = await fetch('/search_jobs', { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                loadingSection.style.display = 'none';
+                searchBtn.disabled = false;
+
+                if (result.success) {
+                    originalCVText = result.raw_cv_text; 
+                    currentJobsData = result.jobs || []; 
+                    displayJobs(result.jobs, result.cv_analysis);
+                    if (result.jobs && result.jobs.length > 0 && result.cv_analysis) {
+                         loadingStatus.textContent = `Found ${result.jobs.length} jobs for ${result.cv_analysis.current_role || 'you'}.`;
+                    } else if (result.jobs && result.jobs.length > 0) {
+                         loadingStatus.textContent = `Found ${result.jobs.length} jobs.`;
+                    } else {
+                        loadingStatus.textContent = "Search complete.";
+                    }
+                } else {
+                    jobsList.innerHTML = `<div class="error-message">❌ ${result.error || 'An unknown error occurred.'} (${response.status})</div>`; // Added status
+                    resultsSection.style.display = 'block';
+                }
+            } catch (error) {
+                loadingSection.style.display = 'none';
+                searchBtn.disabled = false;
+                jobsList.innerHTML = `<div class="error-message">❌ Network error or server issue: ${error.message}</div>`;
+                resultsSection.style.display = 'block';
+            }
+        }
+
+        function displayJobs(jobs, cvAnalysis) {
+            if (!jobs || jobs.length === 0) {
+                let message = 'No relevant jobs found.';
+                if (cvAnalysis && cvAnalysis.current_role) {
+                    message += ` Try broadening your search for roles like "${cvAnalysis.current_role}".`;
+                } else {
+                    message += ' Try a broader location or check your CV content.';
+                }
+                jobsList.innerHTML = `<div class="error-message">${message}</div>`;
+                resultsSection.style.display = 'block';
+                return;
+            }
+            
+            jobsList.innerHTML = jobs.map((job, index) => { 
+                let peopleSearchHTML = ''; 
+                let hasPeopleLinks = false;
+
+                if (job.linkedin_people_search_company_contacts_url) {
+                     peopleSearchHTML += `
+                        <a href="${job.linkedin_people_search_company_contacts_url}" target="_blank" class="people-search-btn" style="background-color: #e67e22;" title="Find recruiters or key contacts at ${job.company} in ${job.location || 'this area'}">
+                            <span role="img" aria-label="handshake icon">🤝</span> Contacts at ${job.company}
+                        </a>`;
+                    hasPeopleLinks = true;
+                }
+                
+                if (hasPeopleLinks) {
+                    peopleSearchHTML = `<div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px; text-align:left;">${peopleSearchHTML}</div>`;
+                }
+
+                let displayDescription = job.description || '';
+                if (displayDescription.length > 180) {
+                    displayDescription = displayDescription.substring(0,180) + '...';
+                }
+                const matchReasoningTitle = job.match_reasoning || 'AI match score';
+
+                return `
+                <div class="job-card" id="job-card-${index}">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div>
+                            <div class="job-title">${job.title}</div>
+                            <div class="job-company">${job.company}</div>
+                            <div class="job-meta">${job.location || 'Location not specified'} • ${job.source}</div>
+                        </div>
+                        ${job.match_score !== undefined ? `<div class="match-score" title="${matchReasoningTitle}">${(job.match_score * 100).toFixed(0)}% Match</div>` : ''}
+                    </div>
+                    ${displayDescription ? `<p style="margin-bottom: 15px; color: #555; font-size:0.9rem;">${displayDescription}</p>` : ''}
+                    <div style="text-align:left;">
+                        <a href="${job.url}" target="_blank" class="action-btn apply-btn">Apply on LinkedIn</a>
+                        <button class="action-btn tailor-cv-btn" onclick="openTailorCVModal(${index})">✨ Tailor CV</button>
+                        ${peopleSearchHTML}
+                    </div>
+                </div>`;
+            }).join('');
+            
+            resultsSection.style.display = 'block';
+        }
+
+        function openTailorCVModal(jobIndex) {
+            if (!originalCVText) {
+                alert('Original CV text not found. Please perform a job search first or re-upload your CV.');
+                return;
+            }
+            const job = currentJobsData[jobIndex];
+            if (!job) {
+                alert('Job details not found.');
+                return;
+            }
+
+            cvTailorModalTitle.textContent = `Tailor CV for: ${job.title}`;
+            cvTailorLoading.style.display = 'block';
+            cvTailorResultsContent.style.display = 'none';
+            cvTailorError.style.display = 'none';
+            tailoredCVText.value = ''; 
+            cvRecommendationsList.innerHTML = ''; 
+            cvTailorModal.style.display = 'block';
+
+            handleTailorCV(job);
+        }
+
+        async function handleTailorCV(job) {
+            const payload = {
+                original_cv_text: originalCVText,
+                job_details: job 
+            };
+
+            try {
+                const response = await fetch('/tailor_cv', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                cvTailorLoading.style.display = 'none';
+                if (result.success && result.data) {
+                    tailoredCVText.value = result.data.tailored_cv || "AI could not generate a tailored CV.";
+                    cvRecommendationsList.innerHTML = (result.data.recommendations || ["No recommendations provided."]).map(rec => `<li>${rec}</li>`).join('');
+                    cvTailorResultsContent.style.display = 'block';
+                } else {
+                    cvTailorError.textContent = `❌ Error: ${result.error || 'Failed to tailor CV.'} (${response.status})`; // Added status
+                    cvTailorError.style.display = 'block';
+                }
+            } catch (error) {
+                cvTailorLoading.style.display = 'none';
+                cvTailorError.textContent = `❌ Network error or server issue: ${error.message}`;
+                cvTailorError.style.display = 'block';
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const textArea = document.getElementById(elementId);
+            textArea.select();
+            textArea.setSelectionRange(0, 99999); 
+            try {
+                document.execCommand('copy');
+                alert('Tailored CV text copied to clipboard!');
+            } catch (err) {
+                alert('Failed to copy text. Please copy manually.');
+            }
+        }
+        window.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                cvTailorModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

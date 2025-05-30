@@ -1,0 +1,10 @@
+Flask>=2.0
+Flask-CORS>=3.0
+openai>=1.0
+requests>=2.25
+PyPDF2>=3.0
+python-docx>=0.8
+python-dotenv>=0.15
+beautifulsoup4>=4.9
+lxml>=4.6 # often a dependency of beautifulsoup4 for faster parsing
+urllib3>=1.26
